@@ -1,4 +1,4 @@
-### Divvy_Exercise_Full_Year_Analysis ###
+### Analysis of Cyclistic data, June 2021–May 2022 ###
 
 # This script is adapted from https://docs.google.com/document/
   # d/1TTj5KNKf4BWvEORGm10oNbpwTRk1hamsWJGj6qRWpuI/edit
