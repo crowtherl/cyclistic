@@ -1,0 +1,15 @@
+all_trips_v2$member_casual,all_trips_v2$day_of_week,all_trips_v2$ride_id
+casual,Sunday,414136
+member,Sunday,336759
+casual,Monday,257509
+member,Monday,400647
+casual,Tuesday,241481
+member,Tuesday,453466
+casual,Wednesday,240842
+member,Wednesday,443085
+casual,Thursday,261274
+member,Thursday,431189
+casual,Friday,306918
+member,Friday,391590
+casual,Saturday,481689
+member,Saturday,376903
