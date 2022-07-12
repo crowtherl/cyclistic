@@ -1,0 +1,1050 @@
+---
+title: "How Do Casual Cyclistic Riders Differ from Members?"
+author: "Lee Crowther"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This case study analyzes bike-share data from the fictional company Cyclistic to discover differences between riders with an annual membership ("members") and riders who purchase single-use or day passes ("casual riders"), with the aim of discovering insights that can help Cyclistic convert casual riders into members.
+
+### Credits
+
+The task was provided by Google as part of the Coursera course "[Google Data Analytics Capstone: Complete a Case Study](https://www.coursera.org/learn/google-data-analytics-capstone 'Google Data Analytics Capstone: Complete a Case Study | Coursera')," part of the [Google Data Analytics Professional Certificate](https://www.coursera.org/professional-certificates/google-data-analytics 'Google Data Analytics Professional Certificate | Coursera').
+
+The [data](https://divvy-tripdata.s3.amazonaws.com/index.html 'Index of bucket \"divvy-tripdata\"') was provided by [Divvy](https://ride.divvybikes.com/ 'Divvy: Chicago\'s Bike share Program | Divvy Bikes'), a real-world bike share system in the Chicago area that is owned by the [Chicago Department of Transportation](https://www.chicago.gov/city/en/depts/cdot.html 'City of Chicago :: Transportation') (CDOT) and managed by [Lyft, Inc.](https://www.lyft.com/ 'Lyft: A ride whenever you need one'), and made available under [this license](https://ride.divvybikes.com/data-license-agreement 'Data License Agreement | Divvy Bikes').
+
+The R script is adapted from [this script](https://docs.google.com/document/d/1TTj5KNKf4BWvEORGm10oNbpwTRk1hamsWJGj6qRWpuI/edit 'Divvy Exercise R Script - Google Docs'), which in turn is based on "['Sophisticated, Clear, and Polished': Divvy and Data Visualization](https://artscience.blog/home/divvy-dataviz-case-study '\'Sophisticated, Clear, and Polished\': Divvy and Data Visualization (Case Study) — ART+SCIENCE')," written by Kevin Hartman.
+
+## Setting up
+
+### Installing packages
+
+This program uses the tidyverse package to import and clean the data, the lubridate package for date functions, the scales package for visualization labels, and the geosphere package to calculate distances.
+
+```{r installing packages}
+library(tidyverse)
+library(lubridate)
+library(scales)
+library(geosphere)
+```
+
+### Reading the data
+
+The data first needs to be downloaded from [Divvy](https://divvy-tripdata.s3.amazonaws.com/index.html 'Index of bucket \"divvy-tripdata\"'). After the data has been downloaded and extracted, the CSV files can be read into R as dataframes.
+
+```{r reading CSV files}
+# Read the CSV files for the past year of Cyclistic data. In this example, the
+  # dates are June 2021–May 2022.
+cycl_202106 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202106-divvy-tripdata.csv")
+cycl_202107 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202107-divvy-tripdata.csv")
+cycl_202108 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202108-divvy-tripdata.csv")
+cycl_202109 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202109-divvy-tripdata.csv")
+cycl_202110 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202110-divvy-tripdata.csv")
+cycl_202111 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202111-divvy-tripdata.csv")
+cycl_202112 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202112-divvy-tripdata.csv")
+cycl_202201 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202201-divvy-tripdata.csv")
+cycl_202202 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202202-divvy-tripdata.csv")
+cycl_202203 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202203-divvy-tripdata.csv")
+cycl_202204 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202204-divvy-tripdata.csv")
+cycl_202205 <- read_csv(
+  "C:/Users/crowt/Documents/capstone/data/202205-divvy-tripdata.csv")
+```
+
+## Data cleaning and exploration
+
+### Combining the data into a single dataframe
+
+Before combining the source data into a single dataframe, we need to make sure the column names are the same in each source dataframe.
+
+```{r sets of column names}
+colnames(cycl_202106)
+colnames(cycl_202107)
+colnames(cycl_202108)
+colnames(cycl_202109)
+colnames(cycl_202110)
+colnames(cycl_202111)
+colnames(cycl_202112)
+colnames(cycl_202201)
+colnames(cycl_202202)
+colnames(cycl_202203)
+colnames(cycl_202204)
+colnames(cycl_202205)
+```
+
+Each dataframe has the same column names. Now we'll inspect the dataframe structures to see if anything looks off.
+
+```{r dataframe structures}
+str(cycl_202106)
+str(cycl_202107)
+str(cycl_202108)
+str(cycl_202109)
+str(cycl_202110)
+str(cycl_202111)
+str(cycl_202112)
+str(cycl_202201)
+str(cycl_202202)
+str(cycl_202203)
+str(cycl_202204)
+str(cycl_202205)
+```
+
+The structures seem fine. Now we can combine the dataframes for each month into a single dataframe for the whole year.
+
+```{r combining dataframes}
+all_trips <- bind_rows(
+  cycl_202106, cycl_202107, cycl_202108, cycl_202109, cycl_202110, cycl_202111,
+  cycl_202112, cycl_202201, cycl_202202, cycl_202203, cycl_202204, cycl_202205)
+```
+
+### Getting to know the new dataframe
+
+Now that all the data is in a single dataframe, we'll get more acquainted with the new dataframe, starting with the column names. These should be the same as what we saw earlier.
+
+```{r all_trips column names}
+colnames(all_trips) # List of column names
+```
+
+Now we'll look at the dimensions.
+
+```{r all_trips dimensions}
+dim(all_trips)
+```
+
+Now we'll look at the first six rows.
+
+```{r all_trips head}
+head(all_trips)
+```
+
+Now we'll look at the last six rows.
+
+```{r all_trips tail}
+tail(all_trips)
+```
+
+Now we'll look at the structure, including a list of the columns and data types, such as numeric, character, etc.
+
+```{r all_trips structure}
+str(all_trips)
+```
+
+Now we'll produce a statistical summary of the data, primarily for numeric data.
+
+```{r all_trips summary}
+summary(all_trips)
+```
+
+### Cleaning the dataframe
+
+There are a few problems we will need to fix:
+* The data can only be aggregated at the ride level, which is too granular. We'll want to add some additional columns, such as day, month, and year, to provide additional opportunities to aggregate the data.
+* We want to add a field calculating ride length.
+* For some rides, the calculated trip duration is negative. This includes several hundred rides where Cyclistic took bikes out of circulation for quality control reasons. We will want to delete these rides.
+
+By looking at how many observations fall under each user type in the member_casual column, we'll see how many user types there are. We want there to be only two.
+
+```{r user types}
+table(all_trips$member_casual)
+```
+
+There are only two different user types, so no further action is needed here.
+
+#### Adding columns
+
+Now we'll add date-related columns to allow further aggregation.
+
+```{r add date columns}
+all_trips$date <- as.Date(all_trips$started_at)
+all_trips$month <- format(as.Date(all_trips$date), "%m")
+all_trips$day <- format(as.Date(all_trips$date), "%d")
+all_trips$year <- format(as.Date(all_trips$date), "%Y")
+all_trips$day_of_week <- format(as.Date(all_trips$date), "%A")
+```
+
+We'll add a field for ride length in seconds.
+
+```{r add ride_length to all_trips}
+# https://stat.ethz.ch/R-manual/R-devel/library/base/html/difftime.html
+all_trips$ride_length <- difftime(all_trips$ended_at,all_trips$started_at)
+```
+
+Now we will again inspect the structure of the dataframe.
+
+```{r review structure of all_trips}
+str(all_trips)
+```
+
+We need to make sure the field for ride length is numeric so we can run calculations on the data.
+
+```{r numeric ride_length}
+is.factor(all_trips$ride_length)
+all_trips$ride_length <- as.numeric(as.character(all_trips$ride_length))
+is.numeric(all_trips$ride_length)
+```
+
+#### Removing "bad" data
+
+The dataframe includes a few hundred entries when bikes were taken out of docks and checked for quality by Divvy or ride_length was negative. We'll remove this data, but first create a new version of the dataframe (v2) to preserve the original data.
+
+```{r remove bad data}
+# https://www.datasciencemadesimple.com/delete-or-drop-rows-in-r-with-conditions-2/
+all_trips_v2 <- all_trips[!(
+  all_trips$start_station_name == "HQ QR" | all_trips$ride_length<0),]
+```
+
+### Descriptive analysis
+
+We'll look at a summary of ride length.
+
+```{r ride_length summary}
+summary(all_trips_v2$ride_length)
+```
+
+We'll compare ride length for members and casual riders.
+
+```{r member–casual comparison}
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = mean)
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = median)
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = max)
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = min)
+```
+
+What is the average ride time by day of the week for members vs. casual riders?
+
+```{r avg ride time by day of week}
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + 
+            all_trips_v2$day_of_week, FUN = mean)
+```
+
+We'll change the ride lengths from seconds to minutes to make them easier to understand.
+
+```{r seconds to minutes}
+all_trips_v2$ride_length <- all_trips_v2$ride_length / 60
+```
+
+The days of the week are out of order, so we'll fix that. We'll sort it starting Monday, so the weekend days are together.
+
+```{r ordering days of week}
+all_trips_v2$day_of_week <- ordered(all_trips_v2$day_of_week, levels=c(
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+```
+
+Now we'll look again at average ride time by day of the week for members vs. casual riders.
+
+```{r review avg ride time by day of week}
+aggregate(all_trips_v2$ride_length ~ all_trips_v2$member_casual + 
+            all_trips_v2$day_of_week, FUN = mean)
+```
+
+We'll look at ridership data by user type and day of the week.
+
+```{r organized data by user type and day of the week}
+all_trips_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>%  
+    # Creates weekday field using wday()
+  group_by(member_casual, weekday) %>%  
+    # Groups by user type and day of the week
+  summarize(number_of_rides = n() 
+            # Calculates the number of rides and average duration 
+            ,average_duration = mean(ride_length)) %>%  
+            # Calculates the average duration
+  arrange(member_casual, weekday) # Sorts
+```
+
+## Visualizations and key takeaways
+
+### How much do they ride?
+
+#### Total rides by user type
+
+Calculate total rides by user type.
+
+```{r rides by user type}
+rides_by_user_type <- aggregate(
+  all_trips_v2$ride_id ~ all_trips_v2$member_casual, FUN = length)
+```
+
+Simplify column names.
+
+```{r rename rides_by_user_type columns}
+names(rides_by_user_type) <- c(
+  "member_casual",
+  "ride_count")
+```
+
+Change the values for members and casual riders to how you want them to appear in the legend.
+
+```{r change member_casual values for rides_by_user_type}
+rides_by_user_type$member_casual[
+  rides_by_user_type$member_casual == "member"] <- "Members"
+
+rides_by_user_type$member_casual[
+  rides_by_user_type$member_casual == "casual"] <- "Casual Riders"
+```
+
+Visualize rides by user type.
+
+```{r visualize rides_by_user_type}
+ggplot(rides_by_user_type, aes(x = member_casual, y = ride_count, fill = member_casual)) + 
+  geom_col(show.legend = FALSE) + 
+  labs(x = "User Type",
+       y = "Total Number of Rides",
+       title = "Number of Rides by User Type",
+       caption = "Data from June 2021–May 2022") + 
+  scale_y_continuous(label = comma, breaks = seq(0, 3000000, 500000))
+```
+
+**Members go on 29% more rides.**
+
+#### Total ride hours by user type
+
+Calculate total ride hours by user type.
+
+```{r ride hours by user type}
+ride_hours_by_user_type <- aggregate(
+  all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = sum)
+```
+
+Simplify column names.
+
+```{r rename ride_hours_by_user_type columns}
+names(ride_hours_by_user_type) <- c("member_casual", "ride_length")
+```
+
+Convert ride length from minutes to hours.
+
+```{r convert ride length to hours}
+ride_hours_by_user_type$ride_length <- ride_hours_by_user_type$ride_length / 60
+```
+
+Change the values for members and casual riders to how you want them to appear in the legend.
+
+```{r change member_casual values for ride_hours_by_user_type}
+ride_hours_by_user_type$member_casual[
+  ride_hours_by_user_type$member_casual == "member"] <- "Members"
+
+ride_hours_by_user_type$member_casual[
+  ride_hours_by_user_type$member_casual == "casual"] <- "Casual Riders"
+```
+
+Visualize ride hours by user type.
+
+```{r visualize ride_hours_by_user_type}
+ggplot(ride_hours_by_user_type, aes(
+  x = member_casual, y = ride_length, fill = member_casual)) + 
+  geom_col(show.legend = FALSE) + 
+  labs(x = "User Type",
+       y = "Ride Hours",
+       title = "Total Ride Hours by User Type",
+       caption = "Data from June 2021–May 2022") + 
+  scale_y_continuous(label = comma)
+```
+
+**However, casual riders spend 92% more time riding.**
+
+### How long are their rides?
+
+#### Average ride length
+
+Calculate average ride length.
+
+```{r calculate average ride length}
+avg_ride_length <- aggregate(
+  all_trips_v2$ride_length ~ all_trips_v2$member_casual, FUN = mean)
+```
+
+Simplify column names.
+
+```{r simplify avg_ride_length column names}
+names(avg_ride_length) <- c("member_casual", "avg_ride_length")
+```
+
+Change the values for members and casual riders to show how you want them to appear in the legend.
+
+```{r change member_casual values for avg_ride_length}
+avg_ride_length$member_casual[
+  avg_ride_length$member_casual == "member"] <- "Members"
+avg_ride_length$member_casual[
+  avg_ride_length$member_casual == "casual"] <- "Casual Riders"
+```
+
+Visualize average ride length by user type.
+
+```{r visualize avg_ride_length}
+ggplot(avg_ride_length, aes(
+  x = member_casual, y = avg_ride_length, fill = member_casual)) + 
+  geom_col(show.legend = FALSE) + 
+  labs(x = "User Type",
+       y = "Average Ride Length (minutes)",
+       title = "Average Ride Length by User Type",
+       caption = "Data from June 2021–May 2022")
+```
+
+#### Average ride length by day of the week
+
+Calculate average ride length by day of the week.
+
+```{r calculate avg length by weekday}
+avg_length_by_weekday <- aggregate(
+  all_trips_v2$ride_length ~ all_trips_v2$member_casual + 
+    all_trips_v2$day_of_week, FUN = mean)
+```
+
+Shorten avg_length_by_weekday column names.
+
+```{r rename avg_length_by_weekday_wide columns}
+names(avg_length_by_weekday) <- c("member_casual", "day_of_week", "ride_length")
+```
+
+Change the values for members and casual riders to how you want them to appear in the legend.
+
+```{r change member_casual values for avg_length_by_weekday}
+avg_length_by_weekday$member_casual[
+  avg_length_by_weekday$member_casual == "member"] <- "Members"
+
+avg_length_by_weekday$member_casual[
+  avg_length_by_weekday$member_casual == "casual"] <- "Casual Riders"
+```
+
+Visualize the data.
+
+```{r visualize avg_length_by_weekday}
+ggplot(avg_length_by_weekday, aes(
+  x = day_of_week, y = ride_length, fill = member_casual)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  labs(x = "Day of the Week",
+       y = "Average Ride Length (minutes)",
+       fill = "User Type",
+       title = "Average Ride Length by User Type and Day of the Week",
+       caption = "Data from June 2021–May 2022")
+```
+
+#### Average ride length by month
+
+Calculate average ride length by month.
+
+```{r calculate average ride length by month}
+avg_length_by_month <- aggregate(
+  all_trips_v2$ride_length ~ all_trips_v2$member_casual + 
+    all_trips_v2$month, FUN = mean)
+```
+
+Simplify column names.
+
+```{r simplify avg_length_by_month columns}
+names(avg_length_by_month) <- c("member_casual", "month", "ride_length")
+```
+
+Change the values for members and casual riders to how you want them to appear in the legend.
+
+```{r change member_casual values for avg_length_by_month}
+avg_length_by_month$member_casual[
+  avg_length_by_month$member_casual == "member"] <- "Members"
+avg_length_by_month$member_casual[
+  avg_length_by_month$member_casual == "casual"] <- "Casual Riders"
+```
+
+Visualize average ride length by month.
+
+```{r visualize avg_length_by_month}
+ggplot(avg_length_by_month, aes(
+  x = month, y = ride_length, fill = member_casual)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  labs(x = "Month",
+       y = "Average Ride Length (minutes)",
+       fill = "User Type",
+       title = "Average Ride Length by User Type and Month",
+       caption = "Data from June 2021–May 2022")
+```
+
+#### Summary
+
+* Members go on more, but shorter, rides.
+* Casual riders go on fewer, but longer, rides.
+* Casual riders spend more overall time riding.
+
+#### Recommendation
+
+Offer membership deals to people who go on longer rides.
+
+### When do they ride most?
+
+#### Rides by day
+
+Calculate number of rides by day of the week.
+
+```{r calculate number of rides by day}
+rides_by_day <- aggregate(all_trips_v2$ride_id ~ all_trips_v2$member_casual + 
+                            all_trips_v2$day_of_week, FUN = length)
+```
+
+Simplify column names.
+
+```{r change rides_by_day column names}
+names(rides_by_day) <- c("member_casual", "day_of_week", "ride_count")
+```
+
+Change the values for members and casual riders to how you want them to appear in the legend.
+
+```{r change member_casual values for rides_by_day}
+rides_by_day$member_casual[rides_by_day$member_casual == "member"] <- "Members"
+rides_by_day$member_casual[
+  rides_by_day$member_casual == "casual"] <- "Casual Riders"
+```
+
+Visualize the number of rides by user type by day of the week.
+
+```{r visualize rides_by_day}
+ggplot(rides_by_day, aes(
+  x = day_of_week, y = ride_count, fill = member_casual)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  labs(x = "Day of the Week",
+       y = "Number of Rides",
+       fill = "User Type",
+       title = "Number of Rides by User Type and Day of the Week",
+       caption = "Data from June 2021–May 2022") + 
+  scale_y_continuous(label = comma)
+```
+
+#### Ride time by day
+
+Calculate total ride hours by day of the week.
+
+```{r calculate ride hours by day}
+ride_hours_by_day <- aggregate(
+  all_trips_v2$ride_length ~ all_trips_v2$member_casual + 
+    all_trips_v2$day_of_week, FUN = sum)
+```
+
+Simplify column names.
+
+```{r rename ride_hours_by_day columns}
+names(ride_hours_by_day) <- c("member_casual", "day_of_week", "ride_length")
+```
+
+Calculate the ride time in a day as a percentage of ride time in a week.
+
+```{r calculate ride time in day as a percentage of ride time in a week}
+ride_hours_by_day$user_type_total[
+  ride_hours_by_day$member_casual == "member"] <- sum(
+    ride_hours_by_day$ride_length[
+      ride_hours_by_day$member_casual == "member"])
+
+ride_hours_by_day$user_type_total[
+  ride_hours_by_day$member_casual == "casual"] <- sum(
+    ride_hours_by_day$ride_length[
+      ride_hours_by_day$member_casual == "casual"])
+
+ride_hours_by_day$percentage_of_weekly_total <- 
+  ride_hours_by_day$ride_length / ride_hours_by_day$user_type_total
+```
+
+Visualize the data.
+
+```{r visualize ride_hours_by_day}
+ggplot(ride_hours_by_day, aes(
+  x = day_of_week, y = percentage_of_weekly_total, fill = member_casual)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  labs(x = "Day of the Week",
+       y = "Percentage of Weekly Ride Time",
+       fill = "User Type",
+       title = "Daily Ride Time as a Percentage of Weekly Ride Time",
+       caption = "Data from June 2021–May 2022") + 
+  scale_y_continuous(label = percent)
+```
+
+#### Rides by month
+
+Calculate number of rides by month.
+
+```{r calculate number of rides by month}
+rides_by_month <- aggregate(all_trips_v2$ride_id ~ all_trips_v2$member_casual + 
+                              all_trips_v2$month, FUN = length)
+```
+
+Simplify column names.
+
+```{r rename rides_by_month columns}
+names(rides_by_month) <- c("member_casual", "month", "ride_count")
+```
+
+Change the values for members and casual riders to how you want them to appear in the legend.
+
+```{r change member_casual values for rides_by_month}
+rides_by_month$member_casual[
+  rides_by_month$member_casual == "member"] <- "Members"
+rides_by_month$member_casual[
+  rides_by_month$member_casual == "casual"] <- "Casual Riders"
+```
+
+Replace month numbers with names and order them.
+```{r rename month columns for rides_by_month}
+rides_by_month$month[rides_by_month$month == "06"] <- "Jun-21"
+rides_by_month$month[rides_by_month$month == "07"] <- "Jul-21"
+rides_by_month$month[rides_by_month$month == "08"] <- "Aug-21"
+rides_by_month$month[rides_by_month$month == "09"] <- "Sep-21"
+rides_by_month$month[rides_by_month$month == "10"] <- "Oct-21"
+rides_by_month$month[rides_by_month$month == "11"] <- "Nov-21"
+rides_by_month$month[rides_by_month$month == "12"] <- "Dec-21"
+rides_by_month$month[rides_by_month$month == "01"] <- "Jan-22"
+rides_by_month$month[rides_by_month$month == "02"] <- "Feb-22"
+rides_by_month$month[rides_by_month$month == "03"] <- "Mar-22"
+rides_by_month$month[rides_by_month$month == "04"] <- "Apr-22"
+rides_by_month$month[rides_by_month$month == "05"] <- "May-22"
+rides_by_month$month <- ordered(rides_by_month$month, levels = c(
+  "Jun-21", "Jul-21", "Aug-21", "Sep-21", "Oct-21", "Nov-21", "Dec-21", 
+  "Jan-22", "Feb-22", "Mar-22", "Apr-22", "May-22"))
+```
+
+Visualize the number of rides by user type by month.
+
+```{r visualize rides_by_month}
+ggplot(rides_by_month, aes(
+  x = month, y = ride_count, fill = member_casual)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  labs(x = "Month",
+       y = "Number of Rides",
+       fill = "User Type",
+       title = "Number of Rides by User Type and Month",
+       caption = "Data from June 2021–May 2022") + 
+  theme(axis.text.x = element_text(angle = 45)) + 
+  scale_y_continuous(label = comma)
+```
+
+#### Ride time by month
+
+Calculate total ride hours by month.
+
+```{r calculate total ride hours by month}
+ride_hours_by_month <- aggregate(
+  all_trips_v2$ride_length ~ all_trips_v2$member_casual + 
+    all_trips_v2$month, FUN = sum)
+```
+
+Simplify column names.
+
+```{r rename ride_hours_by_month columns}
+names(ride_hours_by_month) <- c("member_casual", "month", "ride_length")
+```
+
+Change the values for members and casual riders to how you want them to appear in the legend.
+
+```{r change member_casual values for ride_hours_by_month}
+ride_hours_by_month$member_casual[
+  ride_hours_by_month$member_casual == "member"] <- "Members"
+
+ride_hours_by_month$member_casual[
+  ride_hours_by_month$member_casual == "casual"] <- "Casual Riders"
+```
+
+Calculate the ride time in a month as a percentage of ride time in a year.
+
+```{r calculate ride time in a month as a percentage of ride time in a year}
+ride_hours_by_month$user_type_total[
+  ride_hours_by_month$member_casual == "member"] <- sum(
+    ride_hours_by_month$ride_length[
+      ride_hours_by_month$member_casual == "member"])
+
+ride_hours_by_month$user_type_total[
+  ride_hours_by_month$member_casual == "casual"] <- sum(
+    ride_hours_by_month$ride_length[
+      ride_hours_by_month$member_casual == "casual"])
+
+ride_hours_by_month$percentage_of_annual_total <- 
+  ride_hours_by_month$ride_length / ride_hours_by_month$user_type_total
+```
+
+Replace month numbers with names and order them.
+```{r rename month columns for ride_hours_by_month}
+ride_hours_by_month$month[ride_hours_by_month$month == "06"] <- "Jun-21"
+ride_hours_by_month$month[ride_hours_by_month$month == "07"] <- "Jul-21"
+ride_hours_by_month$month[ride_hours_by_month$month == "08"] <- "Aug-21"
+ride_hours_by_month$month[ride_hours_by_month$month == "09"] <- "Sep-21"
+ride_hours_by_month$month[ride_hours_by_month$month == "10"] <- "Oct-21"
+ride_hours_by_month$month[ride_hours_by_month$month == "11"] <- "Nov-21"
+ride_hours_by_month$month[ride_hours_by_month$month == "12"] <- "Dec-21"
+ride_hours_by_month$month[ride_hours_by_month$month == "01"] <- "Jan-22"
+ride_hours_by_month$month[ride_hours_by_month$month == "02"] <- "Feb-22"
+ride_hours_by_month$month[ride_hours_by_month$month == "03"] <- "Mar-22"
+ride_hours_by_month$month[ride_hours_by_month$month == "04"] <- "Apr-22"
+ride_hours_by_month$month[ride_hours_by_month$month == "05"] <- "May-22"
+ride_hours_by_month$month <- ordered(ride_hours_by_month$month, levels = c(
+  "Jun-21", "Jul-21", "Aug-21", "Sep-21", "Oct-21", "Nov-21", "Dec-21", 
+  "Jan-22", "Feb-22", "Mar-22", "Apr-22", "May-22"))
+```
+
+Visualize the data.
+
+```{r visualize ride_hours_by_month}
+ggplot(ride_hours_by_month, aes(
+  x = month, y = percentage_of_annual_total, fill = member_casual)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  labs(x = "Month",
+       y = "Percentage of Annual Ride Time",
+       fill = "User Type",
+       title = "Monthly Ride Time as a Percentage of Annual Ride Time",
+       caption = "Data from June 2021–May 2022") + 
+  theme(axis.text.x = element_text(angle = 45)) + 
+  scale_y_continuous(label = percent)
+```
+
+#### Summary
+
+* Members ride similar amounts every day of the week.
+* Casual riders are much more active on weekends.
+* Members have a longer peak activity window (6 months) than casual riders (3–4 months).
+
+#### Recommendation
+
+Focus casual rider-targeted advertising efforts on weekends and summer.
+
+### Where do they ride?
+
+#### Average starting points
+
+Calculate the average starting point for each user type and the distance between them.
+
+```{r calculate average starting points}
+# https://statisticsglobe.com/geospatial-distance-between-two-points-in-r
+# https://www.datasciencemadesimple.com/mean-function-in-r/
+# Average starting latitude among casual riders
+avg_start_lat_casual <- mean(
+  all_trips_v2$start_lat[all_trips_v2$member_casual == "casual"], na.rm = TRUE)
+# Average starting longitude among casual riders
+avg_start_lng_casual <- mean(
+  all_trips_v2$start_lng[all_trips_v2$member_casual == "casual"], na.rm = TRUE)
+# Average starting latitude among members
+avg_start_lat_member <- mean(
+  all_trips_v2$start_lat[all_trips_v2$member_casual == "member"], na.rm = TRUE)
+# Average starting longitude among members
+avg_start_lng_member <- mean(
+  all_trips_v2$start_lng[all_trips_v2$member_casual == "member"], na.rm = TRUE)
+
+# Create matrix of starting coordinates.
+avg_start_coordinates <- matrix(c(avg_start_lng_casual, avg_start_lng_member,
+                                  avg_start_lat_casual, avg_start_lat_member),
+                                nrow = 2)
+colnames(avg_start_coordinates) <- c("longitude", "latitude")
+rownames(avg_start_coordinates) <- c("avg_casual_start", "avg_member_start")
+
+# Calculate the rough distance in meters between starting coordinates.
+start_dist_betw <- round(distHaversine(avg_start_coordinates), digits = 0)
+
+# Print the difference in average starting points.
+# https://r-lang.com/print-in-r/
+print(paste("The average starting points for casual riders and members are ",
+            start_dist_betw, " meters apart."))
+```
+
+#### Average ending points
+
+Calculate the average ending point for each user type and the distance between them.
+
+```{r calculate average ending points}
+# Average ending latitude among casual riders
+avg_end_lat_casual <- mean(
+  all_trips_v2$end_lat[all_trips_v2$member_casual == "casual"], na.rm = TRUE)
+# Average ending longitude among casual riders
+avg_end_lng_casual <- mean(
+  all_trips_v2$end_lng[all_trips_v2$member_casual == "casual"], na.rm = TRUE)
+# Average ending latitude among members
+avg_end_lat_member <- mean(
+  all_trips_v2$end_lat[all_trips_v2$member_casual == "member"], na.rm = TRUE)
+# Average ending longitude among members
+avg_end_lng_member <- mean(
+  all_trips_v2$end_lng[all_trips_v2$member_casual == "member"], na.rm = TRUE)
+
+# Create matrix of ending coordinates.
+avg_end_coordinates <- matrix(c(avg_end_lng_casual, avg_end_lng_member,
+                                avg_end_lat_casual, avg_end_lat_member),
+                              nrow = 2)
+colnames(avg_end_coordinates) <- c("longitude", "latitude")
+rownames(avg_end_coordinates) <- c("avg_casual_start", "avg_member_start")
+
+# Calculate the rough distance in meters between ending coordinates.
+end_dist_betw <- round(distHaversine(avg_end_coordinates), digits = 0)
+
+# Print the differences in average ending points.
+print(paste("The average ending points for casual riders and members are ",
+            end_dist_betw, " meters apart."))
+```
+
+#### Most common start stations
+
+```{r calculate start station use}
+start_station_use <- aggregate(
+  all_trips_v2$ride_id ~ all_trips_v2$member_casual + 
+    all_trips_v2$start_station_name, FUN = length)
+```
+
+Simplify column names.
+
+```{r rename start_station_use columns}
+names(start_station_use) <- c("member_casual", "start_station_name", "ride_count")
+```
+
+Widen the table to have only one row per start station, but separate columns for casual rider and member ride counts.
+
+```{r widen start_station_use}
+start_station_use <- start_station_use %>% 
+  group_by(start_station_name) %>% 
+  summarize(casual_ride_count = sum(
+    ride_count[start_station_use$member_casual == "casual"], na.rm = TRUE),
+    member_ride_count = sum(
+      ride_count[start_station_use$member_casual == "member"], na.rm = TRUE))
+```
+
+Weed out stations with under 100 rides by casual riders or members.
+
+```{r weed out lower-use start stations}
+start_station_use <- start_station_use[(
+  start_station_use$casual_ride_count >= 100 & 
+    start_station_use$member_ride_count >= 100),]
+```
+
+Produce a list of the most used stations among casual riders.
+
+```{r find most-used stations among casual riders}
+# https://www.tutorialspoint.com/how-to-remove-a-column-from-an-r-data-frame
+top_casual_start_stations <- subset(
+  start_station_use, select = -member_ride_count) %>% 
+  arrange(desc(casual_ride_count))
+# Limit top_casual_start_stations to the first 10 rows.
+top_casual_start_stations <- top_casual_start_stations[1:10, ]
+# Simplify column names.
+names(top_casual_start_stations) <- 
+        c("Casual Start Station", "Rides by Casual Riders")
+```
+
+Produce a list of the most used stations among members.
+
+```{r find most-used stations among members}
+top_member_start_stations <- subset(
+  start_station_use, select = -casual_ride_count) %>% 
+  arrange(desc(member_ride_count))
+# Limit top_member_start_stations to the first 10 rows.
+top_member_start_stations <- top_member_start_stations[1:10, ]
+# Simplify column names.
+names(top_member_start_stations) <- 
+        c("Member Start Station", "Rides by Members")
+```
+
+Combine the lists of most used stations.
+
+```{r combined most-used station lists}
+top_start_stations <- 
+  data.frame(c(1:10), top_casual_start_stations$`Casual Start Station`,
+             top_casual_start_stations$`Rides by Casual Riders`,
+             top_member_start_stations$`Member Start Station`,
+             top_member_start_stations$`Rides by Members`)
+# Simplify column names.
+names(top_start_stations) <- 
+  c("Rank", "Casual Start Station", "Rides by Casual Riders", 
+    "Member Start Station", "Rides by Members")
+top_start_stations
+```
+
+Top 10 Start Stations by User Type
+
+```{r show top 10 start stations by user type}
+top_start_stations
+```
+
+#### Most common end stations
+
+```{r calculate end station use}
+end_station_use <- aggregate(
+  all_trips_v2$ride_id ~ all_trips_v2$member_casual + 
+    all_trips_v2$end_station_name, FUN = length)
+```
+
+Simplify column names.
+
+```{r rename end_station_use columns}
+names(end_station_use) <- c("member_casual", "end_station_name", "ride_count")
+```
+
+Widen the table to have only one row per end station, but separate columns for casual rider and member ride counts.
+
+```{r widen end_station_use}
+end_station_use <- end_station_use %>% 
+  group_by(end_station_name) %>% 
+  summarize(casual_ride_count = sum(
+    ride_count[end_station_use$member_casual == "casual"], na.rm = TRUE),
+    member_ride_count = sum(
+      ride_count[end_station_use$member_casual == "member"], na.rm = TRUE))
+```
+
+Weed out stations with under 100 rides by casual riders or members.
+
+```{r weed out lower-use end stations}
+end_station_use <- end_station_use[(
+  end_station_use$casual_ride_count >= 100 & 
+    end_station_use$member_ride_count >= 100),]
+```
+
+Produce a list of the most used stations among casual riders.
+
+```{r find most-used end stations among casual riders}
+# https://www.tutorialspoint.com/how-to-remove-a-column-from-an-r-data-frame
+top_casual_end_stations <- subset(
+  end_station_use, select = -member_ride_count) %>% 
+  arrange(desc(casual_ride_count))
+# Limit top_casual_end_stations to the first 10 rows.
+top_casual_end_stations <- top_casual_end_stations[1:10, ]
+# Simplify column names.
+names(top_casual_end_stations) <- 
+        c("Casual End Station", "Rides by Casual Riders")
+```
+
+Produce a list of the most used stations among members.
+
+```{r find most-used end stations among members}
+top_member_end_stations <- subset(
+  end_station_use, select = -casual_ride_count) %>% 
+  arrange(desc(member_ride_count))
+# Limit top_member_end_stations to the first 10 rows.
+top_member_end_stations <- top_member_end_stations[1:10, ]
+# Simplify column names.
+names(top_member_end_stations) <- 
+        c("Member End Station", "Rides by Members")
+```
+
+Combine the lists of most used stations.
+
+```{r combine tables of most-used end stations}
+top_end_stations <- 
+  data.frame(c(1:10), top_casual_end_stations$`Casual End Station`,
+             top_casual_end_stations$`Rides by Casual Riders`,
+             top_member_end_stations$`Member End Station`,
+             top_member_end_stations$`Rides by Members`)
+# Simplify column names.
+names(top_end_stations) <- 
+  c("Rank", "Casual End Station", "Rides by Casual Riders", 
+    "Member End Station", "Rides by Members")
+top_end_stations
+```
+
+Top 10 End Stations by User Type
+
+```{r show list of top end stations}
+top_end_stations
+```
+
+#### Most common start stations for casual riders relative to members
+
+Add a column dividing the number of rides by casual riders by the number of rides by members.
+
+```{r calculate ratio of casual riders to members for each start station}
+start_station_use$casual_div_member <- 
+  start_station_use$casual_ride_count / start_station_use$member_ride_count
+```
+
+Sort the table, limit to the first 10 rows, and remove less relevant columns.
+
+```{r sort relative_start_station_use}
+relative_start_station_use <- subset(
+  start_station_use, select = -casual_ride_count)
+relative_start_station_use <- subset(
+  relative_start_station_use, select = -member_ride_count)
+relative_start_station_use <- arrange(
+  relative_start_station_use, desc(casual_div_member))
+# Rename the columns for display
+names(relative_start_station_use) <- c(
+  "Start Station", "Casual Rides ÷ Member Rides")
+# Limit to only the top 10 rows.
+relative_start_station_use <- relative_start_station_use[1:10, ]
+```
+
+Most Common Start Stations for Casual Riders Relative to Members
+
+```{r show relative_start_station_use}
+relative_start_station_use
+```
+
+#### Most common end stations for casual riders relative to members
+
+Add a column dividing the number of rides by casual riders by the number of rides by members.
+
+```{r calculate ratio of casual rides to member rides for each end station}
+end_station_use$casual_div_member <- 
+  end_station_use$casual_ride_count / end_station_use$member_ride_count
+```
+
+Sort the table, limit to the first 10 rows, and remove less relevant columns.
+
+```{r sort relative_end_station_use}
+relative_end_station_use <- subset(
+  end_station_use, select = -casual_ride_count)
+relative_end_station_use <- subset(
+  relative_end_station_use, select = -member_ride_count)
+relative_end_station_use <- arrange(
+  relative_end_station_use, desc(casual_div_member))
+# Rename the columns for display
+names(relative_end_station_use) <- c(
+  "End Station", "Casual Rides ÷ Member Rides")
+# Limit to only the top 10 rows.
+relative_end_station_use <- relative_end_station_use[1:10, ]
+```
+
+Most Common End Stations for Casual Riders Relative to Members
+
+```{r show relative_end_station_use}
+relative_end_station_use
+```
+
+#### Summary
+
+* The differences between casual riders and members in average starting and ending coordinates are relatively small.
+* However, there are differences in which stations they frequent.
+
+#### Recommendation
+
+Focus casual rider-targeted advertising on the stations they frequent most.
+
+#### Caution
+
+Some stations most frequented by casual riders may be due to tourists, who are less likely to be local and benefit from membership. It may require further research to determine which stations are most frequented by casual riders who are more likely to benefit from membership.
+
+### Overall Observations and Recommendations
+
+#### Observation 1
+
+Casual riders go on fewer, but longer, rides, and spend more overall time riding.
+
+#### Recommendation 1
+
+Offer membership deals to people who go on longer rides.
+
+#### Observation 2
+
+Casual riders are more likely to ride during weekends and summer.
+
+#### Recommendation 2
+
+Focus casual rider-targeted advertising efforts on these times.
+
+#### Observation 3
+
+Casual riders and members frequent different stations.
+
+#### Recommendation 3
+
+Focus casual rider-targeted advertising on the stations they frequent most, but use caution in tourist-heavy areas where casual riders are less likely to be local.
