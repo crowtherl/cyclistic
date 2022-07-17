@@ -20,7 +20,7 @@ This case study analyzes bike-share data from the fictional company Cyclistic to
 
 * This report focuses on key findings and recommendations. To view a more thorough report detailing the analysis process, visit [this page](https://htmlpreview.github.io/?https://github.com/crowtherln/cyclistic/blob/main/casual-riders-vs-members.html 'How Do Casual Cyclistic Riders Differ from Members? | Analysis and Findings').
 * To view the R Markdown file that produced this report, visit [this page](https://github.com/crowtherln/cyclistic/blob/main/casual-riders-vs-members_summary.Rmd 'cyclistic/casual-riders-vs-members_summary.Rmd at main • crowtherln/cyclistic').
-* To view the raw html for this report, visit [this page](https://github.com/crowtherln/cyclistic/blob/main/casual-riders-vs-members.html 'cyclistic/casual-riders-vs-members.html at main • crowtherln/cyclistic').
+* To view the raw html for this report, visit [this page](https://github.com/crowtherln/cyclistic/blob/main/casual-riders-vs-members_summary.html 'cyclistic/casual-riders-vs-members_summary.html at main • crowtherln/cyclistic').
 * To view the R Markdown file that produced the more detailed report, visit [this page](https://github.com/crowtherln/cyclistic/blob/main/casual-riders-vs-members.Rmd 'cyclistic/casual-riders-vs-members.Rmd at main • crowtherln/cyclistic').
 
 
@@ -36,29 +36,29 @@ library(knitr) # to format tables
 # Read the CSV files for the past year of Cyclistic data. In this example, the
   # dates are June 2021–May 2022.
 cycl_202106 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202106-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202106-divvy-tripdata.csv")
 cycl_202107 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202107-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202107-divvy-tripdata.csv")
 cycl_202108 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202108-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202108-divvy-tripdata.csv")
 cycl_202109 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202109-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202109-divvy-tripdata.csv")
 cycl_202110 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202110-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202110-divvy-tripdata.csv")
 cycl_202111 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202111-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202111-divvy-tripdata.csv")
 cycl_202112 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202112-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202112-divvy-tripdata.csv")
 cycl_202201 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202201-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202201-divvy-tripdata.csv")
 cycl_202202 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202202-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202202-divvy-tripdata.csv")
 cycl_202203 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202203-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202203-divvy-tripdata.csv")
 cycl_202204 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202204-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202204-divvy-tripdata.csv")
 cycl_202205 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202205-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202205-divvy-tripdata.csv")
 ```
 
 ```{r combining dataframes}
@@ -627,7 +627,7 @@ top_end_stations
 ```
 
 ```{r show list of top end stations, results = TRUE}
-kable(top_end_stations, caption = "Top 10 Start Stations by User Type")
+kable(top_end_stations, caption = "Top 10 End Stations by User Type")
 ```
 
 ---
