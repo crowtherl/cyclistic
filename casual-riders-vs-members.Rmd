@@ -13,6 +13,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This case study analyzes bike-share data from the fictional company Cyclistic to discover differences between riders with an annual membership ("members") and riders who purchase single-use or day passes ("casual riders"), with the aim of discovering insights that can help Cyclistic convert casual riders into members.
 
+### Related pages
+
+* This report provides a detailed look at the analysis process. To view a summary report, visit [this page](https://htmlpreview.github.io/?https://github.com/crowtherln/cyclistic/blob/main/casual-riders-vs-members_summary.html 'How Do Casual Cyclistic Riders Differ from Members? | Summary').
+* To view the R Markdown file that produced this report, visit [this page](https://github.com/crowtherln/cyclistic/blob/main/casual-riders-vs-members.Rmd 'cyclistic/casual-riders-vs-members.Rmd at main • crowtherln/cyclistic').
+* To view the raw html for this report, visit [this page](https://github.com/crowtherln/cyclistic/blob/main/casual-riders-vs-members.html 'cyclistic/casual-riders-vs-members.html at main • crowtherln/cyclistic').
+* To view the R Markdown file that produced the summary report, visit [this page](https://github.com/crowtherln/cyclistic/blob/main/casual-riders-vs-members_summary.Rmd 'cyclistic/casual-riders-vs-members_summary.Rmd at main • crowtherln/cyclistic').
+
 ### Credits
 
 The task was provided by Google as part of the Coursera course "[Google Data Analytics Capstone: Complete a Case Study](https://www.coursera.org/learn/google-data-analytics-capstone 'Google Data Analytics Capstone: Complete a Case Study | Coursera')," part of the [Google Data Analytics Professional Certificate](https://www.coursera.org/professional-certificates/google-data-analytics 'Google Data Analytics Professional Certificate | Coursera').
@@ -25,13 +32,14 @@ The R script is adapted from [this script](https://docs.google.com/document/d/1T
 
 ### Installing packages
 
-This program uses the tidyverse package to import and clean the data, the lubridate package for date functions, the scales package for visualization labels, and the geosphere package to calculate distances.
+This program uses the tidyverse package to import and clean the data, the lubridate package for date functions, the scales package for visualization labels, the geosphere package to calculate distances, and the knitr package to format tables.
 
 ```{r installing packages}
 library(tidyverse)
 library(lubridate)
 library(scales)
 library(geosphere)
+library(knitr)
 ```
 
 ### Reading the data
@@ -42,29 +50,29 @@ The data first needs to be downloaded from [Divvy](https://divvy-tripdata.s3.ama
 # Read the CSV files for the past year of Cyclistic data. In this example, the
   # dates are June 2021–May 2022.
 cycl_202106 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202106-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202106-divvy-tripdata.csv")
 cycl_202107 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202107-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202107-divvy-tripdata.csv")
 cycl_202108 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202108-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202108-divvy-tripdata.csv")
 cycl_202109 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202109-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202109-divvy-tripdata.csv")
 cycl_202110 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202110-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202110-divvy-tripdata.csv")
 cycl_202111 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202111-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202111-divvy-tripdata.csv")
 cycl_202112 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202112-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202112-divvy-tripdata.csv")
 cycl_202201 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202201-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202201-divvy-tripdata.csv")
 cycl_202202 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202202-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202202-divvy-tripdata.csv")
 cycl_202203 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202203-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202203-divvy-tripdata.csv")
 cycl_202204 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202204-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202204-divvy-tripdata.csv")
 cycl_202205 <- read_csv(
-  "C:/Users/crowt/Documents/capstone/data/202205-divvy-tripdata.csv")
+  "C:/Users/rastley/Documents/data/202205-divvy-tripdata.csv")
 ```
 
 ## Data cleaning and exploration
@@ -556,6 +564,15 @@ ride_hours_by_day$percentage_of_weekly_total <-
   ride_hours_by_day$ride_length / ride_hours_by_day$user_type_total
 ```
 
+Change the values for members and casual riders to how you want them to appear in the legend.
+
+```{r change member_casual values for ride_hours_by_day}
+ride_hours_by_day$member_casual[
+  rides_by_day$member_casual == "member"] <- "Members"
+ride_hours_by_day$member_casual[
+  ride_hours_by_day$member_casual == "casual"] <- "Casual Riders"
+```
+
 Visualize the data.
 
 ```{r visualize ride_hours_by_day}
@@ -644,16 +661,6 @@ Simplify column names.
 names(ride_hours_by_month) <- c("member_casual", "month", "ride_length")
 ```
 
-Change the values for members and casual riders to how you want them to appear in the legend.
-
-```{r change member_casual values for ride_hours_by_month}
-ride_hours_by_month$member_casual[
-  ride_hours_by_month$member_casual == "member"] <- "Members"
-
-ride_hours_by_month$member_casual[
-  ride_hours_by_month$member_casual == "casual"] <- "Casual Riders"
-```
-
 Calculate the ride time in a month as a percentage of ride time in a year.
 
 ```{r calculate ride time in a month as a percentage of ride time in a year}
@@ -669,6 +676,16 @@ ride_hours_by_month$user_type_total[
 
 ride_hours_by_month$percentage_of_annual_total <- 
   ride_hours_by_month$ride_length / ride_hours_by_month$user_type_total
+```
+
+Change the values for members and casual riders to how you want them to appear in the legend.
+
+```{r change member_casual values for ride_hours_by_month}
+ride_hours_by_month$member_casual[
+  ride_hours_by_month$member_casual == "member"] <- "Members"
+
+ride_hours_by_month$member_casual[
+  ride_hours_by_month$member_casual == "casual"] <- "Casual Riders"
 ```
 
 Replace month numbers with names and order them.
@@ -861,10 +878,8 @@ names(top_start_stations) <-
 top_start_stations
 ```
 
-Top 10 Start Stations by User Type
-
 ```{r show top 10 start stations by user type}
-top_start_stations
+kable(top_start_stations, caption = "Top 10 Start Stations by User Type")
 ```
 
 #### Most common end stations
@@ -945,7 +960,7 @@ top_end_stations
 Top 10 End Stations by User Type
 
 ```{r show list of top end stations}
-top_end_stations
+kable(top_end_stations, caption = "Top 10 End Stations by User Type")
 ```
 
 #### Most common start stations for casual riders relative to members
@@ -973,10 +988,9 @@ names(relative_start_station_use) <- c(
 relative_start_station_use <- relative_start_station_use[1:10, ]
 ```
 
-Most Common Start Stations for Casual Riders Relative to Members
-
 ```{r show relative_start_station_use}
-relative_start_station_use
+kable(relative_start_station_use, caption = 
+        "Most Common Start Stations for Casual Riders Relative to Members")
 ```
 
 #### Most common end stations for casual riders relative to members
@@ -1007,7 +1021,8 @@ relative_end_station_use <- relative_end_station_use[1:10, ]
 Most Common End Stations for Casual Riders Relative to Members
 
 ```{r show relative_end_station_use}
-relative_end_station_use
+kable(relative_end_station_use, caption = 
+        "Most Common End Stations for Casual Riders Relative to Members")
 ```
 
 #### Summary
@@ -1025,26 +1040,16 @@ Some stations most frequented by casual riders may be due to tourists, who are l
 
 ### Overall Observations and Recommendations
 
-#### Observation 1
+```{r create observations and recommendations dataframe}
+Observation <- c("Casual riders go on fewer, but longer, rides, and spend more overall time riding.",
+                  "Casual riders are more likely to ride during weekends and summer.",
+                  "Casual riders and members frequent different stations.")
+Recommendation <- c("Offer membership deals to people who go on longer rides.",
+                     "Focus casual rider-targeted advertising efforts on these times.",
+                     "Focus casual rider-targeted advertising on the stations they frequent most, but use caution in tourist-heavy areas where casual riders are less likely to be local.")
+observations_and_recommendations <- data.frame(Observation, Recommendation)
+```
 
-Casual riders go on fewer, but longer, rides, and spend more overall time riding.
-
-#### Recommendation 1
-
-Offer membership deals to people who go on longer rides.
-
-#### Observation 2
-
-Casual riders are more likely to ride during weekends and summer.
-
-#### Recommendation 2
-
-Focus casual rider-targeted advertising efforts on these times.
-
-#### Observation 3
-
-Casual riders and members frequent different stations.
-
-#### Recommendation 3
-
-Focus casual rider-targeted advertising on the stations they frequent most, but use caution in tourist-heavy areas where casual riders are less likely to be local.
+```{r show observations and recommendations table}
+kable(observations_and_recommendations)
+```
